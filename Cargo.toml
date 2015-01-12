@@ -1,0 +1,11 @@
+[package]
+
+name = "selecta-rs"
+version = "0.0.1"
+description = "A port of Gary's selecta into rust"
+license = "MIT"
+authors = [ "herman@hermanradtke.com" ]
+
+[[bin]]
+
+name = "selecta"
