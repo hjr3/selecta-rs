@@ -1,9 +1,9 @@
-use libc::{c_int, c_ulong, c_ushort};
+use libc::{c_int, c_ulong, c_ushort, STDOUT_FILENO};
 use libc::funcs::bsd44::ioctl;
 
 use std::io::{IoResult, standard_error, ResourceUnavailable};
 
-#[repr(C, packed)]
+#[repr(C)]
 struct winsize {
     ws_row: c_ushort,     /* rows, in characters */
     ws_col: c_ushort,     /* columns, in characters */
@@ -12,7 +12,6 @@ struct winsize {
 }
 
 const TIOCGWINSZ: c_ulong = 0x40087468;
-const STDOUT_FILENO: c_int = 1;
 
 pub fn winsize() -> IoResult<(isize, isize)> {
     let w = winsize { ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0 };
