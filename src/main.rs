@@ -6,6 +6,22 @@ use std::io::{IoResult, standard_error, ResourceUnavailable};
 use std::io::stdio::{stdin, StdinReader, stdout_raw, StdWriter};
 
 mod winsize;
+mod ansi;
+
+fn main() {
+    let mut tty = match TTY::new() {
+        Ok(tty) => tty,
+        Err(r) => {
+            println!("Failed to open a tty: {}", r);
+            return;
+        }
+    };
+    println!("I read in {}", tty.get_char());
+
+    let (width, height) = tty.winsize().unwrap();
+    println!("Window size is {} x {}", width, height);
+    tty.puts();
+}
 
 struct TTY {
     in_file: StdinReader,
@@ -24,14 +40,6 @@ impl TTY {
         Ok(TTY { in_file: in_file, out_file: out_file })
     }
 
-    fn puts(&mut self) {
-        let _ = self.out_file.write_line("");
-    }
-
-    fn winsize(&mut self) -> IoResult<(isize, isize)> {
-        winsize::winsize()
-    }
-
     fn get_char(&mut self) -> char {
         match self.in_file.read_byte() {
             Ok(c) => c as char,
@@ -41,19 +49,16 @@ impl TTY {
             }
         }
     }
-}
 
-fn main() {
-    let mut tty = match TTY::new() {
-        Ok(tty) => tty,
-        Err(r) => {
-            println!("Failed to open a tty: {}", r);
-            return;
-        }
-    };
-    println!("I read in {}", tty.get_char());
+    fn puts(&mut self) {
+        let _ = self.out_file.write_line("");
+    }
 
-    let (width, height) = tty.winsize().unwrap();
-    println!("Window size is {} x {}", width, height);
-    tty.puts();
+    fn winsize(&mut self) -> IoResult<(isize, isize)> {
+        winsize::winsize()
+    }
+
+    fn stty() {
+        // TODO implement a way to pipe to /dev/tty
+    }
 }
