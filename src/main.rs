@@ -2,14 +2,12 @@
 
 extern crate libc;
 
-use std::io::{IoResult, standard_error, ResourceUnavailable};
-use std::io::stdio::{stdin, StdinReader, stdout_raw, StdWriter};
-
 mod winsize;
+mod tty;
 mod ansi;
 
 fn main() {
-    let mut tty = match TTY::new() {
+    let mut tty = match tty::TTY::new() {
         Ok(tty) => tty,
         Err(r) => {
             println!("Failed to open a tty: {}", r);
@@ -23,42 +21,3 @@ fn main() {
     tty.puts();
 }
 
-struct TTY {
-    in_file: StdinReader,
-    out_file: StdWriter
-}
-
-impl TTY {
-    fn new() -> IoResult<TTY> {
-        let in_file = stdin();
-        let out_file = stdout_raw();
-
-        if ! out_file.isatty() {
-            return Err(standard_error(ResourceUnavailable));
-        }
-
-        Ok(TTY { in_file: in_file, out_file: out_file })
-    }
-
-    fn get_char(&mut self) -> char {
-        match self.in_file.read_byte() {
-            Ok(c) => c as char,
-            Err(e) => {
-                // log
-                ' '
-            }
-        }
-    }
-
-    fn puts(&mut self) {
-        let _ = self.out_file.write_line("");
-    }
-
-    fn winsize(&mut self) -> IoResult<(isize, isize)> {
-        winsize::winsize()
-    }
-
-    fn stty() {
-        // TODO implement a way to pipe to /dev/tty
-    }
-}
