@@ -72,44 +72,44 @@ fn reset() -> String {
 }
 
 
-struct ANSI {
+pub struct ANSI {
     file: StdWriter
 }
 
 impl ANSI {
-    fn new(file: StdWriter) -> ANSI {
+    pub fn new(file: StdWriter) -> ANSI {
         ANSI { file: file }
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.write(clear());
     }
 
-    fn hide_cursor(&mut self) {
+    pub fn hide_cursor(&mut self) {
         self.write(hide_cursor());
     }
 
-    fn show_cursor(&mut self) {
+    pub fn show_cursor(&mut self) {
         self.write(show_cursor());
     }
 
-    fn setpos(&mut self, line: u16, column: u16) {
+    pub fn setpos(&mut self, line: u16, column: u16) {
         self.write(setpos(line, column));
     }
 
-    fn color(&mut self, fg: ANSIColor, bg: ANSIColor) {
+    pub fn color(&mut self, fg: ANSIColor, bg: ANSIColor) {
         self.write(color(fg, bg));
     }
 
-    fn inverse(&mut self) {
+    pub fn inverse(&mut self) {
         self.write(inverse());
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.write(reset());
     }
 
-    fn write(&mut self, s: String) {
+    pub fn write(&mut self, s: String) {
         self.file.write_str(s.as_slice());
     }
 }

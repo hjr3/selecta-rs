@@ -1,22 +1,23 @@
 
-use std::io::{IoResult, standard_error, ResourceUnavailable};
+use std::os::unix::prelude::AsRawFd;
+use std::io::{File, FileMode, FileAccess, IoResult, standard_error, ResourceUnavailable};
 use std::io::stdio::{stdin, StdinReader, stdout_raw, StdWriter};
+use std::io::pipe::{PipePair, PipeStream};
+use std::io::Command;
+use std::io::process::StdioContainer;
 
 use winsize;
 
 pub struct TTY {
-    in_file: StdinReader,
-    out_file: StdWriter
+    in_file: File,
+    out_file: File,
 }
 
 impl TTY {
     pub fn new() -> IoResult<TTY> {
-        let in_file = stdin();
-        let out_file = stdout_raw();
-
-        if ! out_file.isatty() {
-            return Err(standard_error(ResourceUnavailable));
-        }
+        let path = Path::new("/dev/tty");
+        let in_file = File::open_mode(&path, FileMode::Open, FileAccess::Write).unwrap();
+        let out_file = File::open(&path).unwrap();
 
         Ok(TTY { in_file: in_file, out_file: out_file })
     }
@@ -35,11 +36,19 @@ impl TTY {
         let _ = self.out_file.write_line("");
     }
 
-    pub fn winsize(&mut self) -> IoResult<(isize, isize)> {
+    pub fn winsize(&mut self) -> IoResult<(u16, u16)> {
         winsize::winsize()
     }
 
-    pub fn stty() {
-        // TODO implement a way to pipe to /dev/tty
+    pub fn stty(&mut self, arg: &str) -> String {
+        let path = Path::new("/dev/tty");
+        let file = File::open(&path).unwrap();
+        let tty_fd = file.as_raw_fd();
+        let output = match Command::new("stty").arg(arg).stdin(StdioContainer::InheritFd(tty_fd)).output() {
+            Ok(o) => o,
+            Err(e) => panic!("failed to execute process: {}", e),
+        };
+
+        String::from_utf8(output.output).unwrap()
     }
 }
