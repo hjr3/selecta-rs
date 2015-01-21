@@ -17,7 +17,7 @@ fn main() {
     //let mut screen = screen::Screen::with_screen();
     //let mut _choices = stdin_readlines();
 
-    let score = score::score("a".to_string(), "b".to_string());
+    let score = score::score("a", "b");
     println!("score = {}", score);
 
     //let config = config::Configuration::from_inputs(choices, screen.height());

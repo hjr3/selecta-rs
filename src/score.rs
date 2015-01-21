@@ -1,7 +1,7 @@
-use std::ascii::OwnedAsciiExt;
 use std::str::StrExt;
+use std::ascii::AsciiExt;
 
-pub fn score(choice: String, query: String) -> f64 {
+pub fn score(choice: &str, query: &str) -> f64 {
     if query.len() == 0 {
         return 1.0;
     }
@@ -10,8 +10,9 @@ pub fn score(choice: String, query: String) -> f64 {
         return 0.0;
     }
 
-    let lower_choice = choice.into_ascii_lowercase();
-    let lower_query = query.into_ascii_lowercase();
+    //let lower_choice = choice.into_ascii_lowercase();
+    let lower_choice = choice.to_ascii_lowercase();
+    let lower_query = query.to_ascii_lowercase();
     let lower_choice_len = lower_choice.len() as f64;
 
     println!("{} in {}", lower_query, lower_choice);
@@ -106,28 +107,28 @@ fn find_from_offset(haystack: &str, needle: char, offset: usize) -> Option<usize
 
 #[test]
 fn test_scores_zero_when_choice_is_empty() {
-    assert!(score("".to_string(), "a".to_string()) == 0.0);
+    assert!(score("", "a") == 0.0);
 
 }
 
 #[test]
 fn test_scores_one_when_query_is_empty() {
-    assert!(score("a".to_string(), "".to_string()) == 1.0);
+    assert!(score("a", "") == 1.0);
 }
 
 #[test]
 fn test_scores_zero_when_the_query_longer_than_choice() {
-    assert!(score("short".to_string(), "longer".to_string()) == 0.0);
+    assert!(score("short", "longer") == 0.0);
 }
 
 #[test]
 fn test_scores_zero_when_query_does_not_match_at_all() {
-    assert!(score("a".to_string(), "b".to_string()) == 0.0);
+    assert!(score("a", "b") == 0.0);
 }
 
 #[test]
 fn test_scores_zero_when_only_prefix_of_query_matches() {
-    assert!(score("ab".to_string(), "ac".to_string()) == 0.0);
+    assert!(score("ab", "ac") == 0.0);
 }
 
 #[test]
@@ -135,18 +136,66 @@ fn test_scores_greater_than_zero_when_matches() {
     let given_choices: Vec<&str> = vec!("a", "ab", "ba", "bab");
 
     for choice in given_choices.iter() {
-        assert!(score(choice.to_string(), "a".to_string()) > 0.0);
+        assert!(score(*choice, "a") > 0.0);
     }
 
-    assert!(score("babababab".to_string(), "aaaa".to_string()) > 0.0);
+    assert!(score("babababab", "aaaa") > 0.0);
 }
 
 #[test]
 fn test_scores_1_normalized_to_length_when_the_query_equals_choice() {
-    assert!(score("a".to_string(), "a".to_string()) == 1.0);
-    assert!(score("ab".to_string(), "ab".to_string()) == 0.5);
-    assert!(score("a long string".to_string(), "a long string".to_string()) == 
+    assert!(score("a", "a") == 1.0);
+    assert!(score("ab", "ab") == 0.5);
+    assert!(score("a long string", "a long string") == 
             1.0 / "a long string".len() as f64);
-    assert!(score("spec/search_spec.rb".to_string(), "sear".to_string()) == 
+    assert!(score("spec/search_spec.rb", "sear") == 
             1.0 / "spec/search_spec.rb".len() as f64);
+}
+
+#[test]
+fn test_matches_punctuation() {
+    assert!(score("/! symbols $^", "/!$^") > 0.0);
+}
+
+#[test]
+fn test_is_case_insensitive() {
+    assert!(score("a", "A") == 1.0);
+    assert!(score("A", "a") == 1.0);
+}
+
+#[test]
+fn test_does_not_match_when_same_letter_is_repeated_in_choice() {
+    assert!(score("a", "aa") == 0.0);
+}
+
+#[test]
+fn test_scores_higher_for_better_matches() {
+    assert!(score("selecta.gemspec", "asp") > score("algorithm4_spec.rb", "asp"));
+    assert!(score("README.md", "em") > score("benchmark.rb", "em"));
+    assert!(score("search.rb", "sear") > score("spec/search_spec.rb", "sear"));
+}
+
+#[test]
+fn test_scores_shorter_matches_higher() {
+    assert!(score("fbb", "fbb") > score("foo bar baz", "fbb"));
+    assert!(score("foo", "foo") > score("longer foo", "foo"));
+    assert!(score("foo", "foo") > score("foo longer", "foo"));
+    assert!(score("1/2/3/4", "1/2/3") > score("1/9/2/3/4", "1/2/3"));
+}
+
+#[test]
+fn test_sometimes_score_longer_strings_higher_if_better_match() {
+    assert!(score("long 12 long", "12") > score("1 long 2", "12"));
+}
+
+#[test]
+fn test_scores_higher_of_two_matches_regardless_of_order() {
+    let tight = "12";
+    let loose = "1padding2";
+    let expect1 = tight.to_string() + loose;
+    let expect2 = loose.to_string() + tight;
+
+    assert!(score(expect1.as_slice(), "12") == 1.0 / expect1.len() as f64);
+    assert!(score(expect2.as_slice(), "12") == 1.0 / expect2.len() as f64);
+
 }
