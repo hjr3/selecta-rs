@@ -16,38 +16,35 @@ pub fn score(choice: &str, query: &str) -> f64 {
 
     let match_length = compute_match_length(lower_choice.as_slice(), lower_query.chars().collect());
 
-    if match_length == 0 {
-        return 0.0;
+    match match_length {
+        Some(match_length) => {
+            let score = lower_query.len() as f64 / match_length as f64;
+            score / lower_choice_len
+        },
+        None => { 0.0 },
     }
 
-    let score = lower_query.len() as f64 / match_length as f64;
-
-    score / lower_choice_len
 }
 
 /// Find the length of the shortest substring matching the given characters.
-fn compute_match_length(haystack: &str, needles: Vec<char>) -> usize {
+fn compute_match_length(haystack: &str, needles: Vec<char>) -> Option<usize> {
     let first_char = needles[0];
     let rest = needles.slice_from(1);
-    let mut min_index = 0;
 
     let first_indexes = find_char_in_string(haystack, first_char);
 
-    for first_index in first_indexes.iter() {
-        let last_index = find_end_of_match(haystack, rest, *first_index);
-
-        match last_index {
+    first_indexes.iter().map(|&first_index|
+        match find_end_of_match(haystack, rest, first_index) {
             Some(index) => {
-                let new_index = index - *first_index + 1;
-                if min_index == 0 || new_index < min_index {
-                    min_index = new_index;
-                }
+                Some(index - first_index + 1)
             },
-            None => {}
+            None => { None }
         }
-    }
-
-    min_index
+    ).filter(|&m|
+        m.is_some()
+    ).map(|m|
+        m.unwrap()
+    ).min()
 }
 
 /// Find all occurrences of the character in the string, returning their indexes.
