@@ -1,6 +1,7 @@
 #![allow(unstable)]
 
 extern crate libc;
+extern crate test;
 
 use std::io::stdin;
 
