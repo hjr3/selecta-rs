@@ -9,9 +9,9 @@ use std::io::stdin;
 //mod tty;
 //mod ansi;
 //mod screen;
-//mod config;
+mod config;
 mod score;
-//mod search;
+mod search;
 
 fn main() {
 

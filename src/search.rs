@@ -1,4 +1,5 @@
 use config::Configuration;
+use score::score;
 use std::cmp::min;
 
 pub struct Search {
@@ -21,7 +22,7 @@ impl Search {
         // TODO wire this up
         let m = match matches {
             Some(m) => m,
-            _ => compute_matches(&choices)
+            _ => compute_matches(&choices, query.as_slice())
         };
 
         Search { config: config,
@@ -116,9 +117,16 @@ impl Search {
     }
 }
 
-fn compute_matches(choices: &Vec<String>) -> Vec<String> {
-    //let choice_score = choices.iter().map(|&choice| (choice, 1.0));
-    choices.clone()
+fn compute_matches(choices: &Vec<String>, query: &str) -> Vec<String> {
+    choices.iter().map(|choice|
+        (choice, score(choice.as_slice(), query))
+    ).filter(|&(_choice, score)|
+        score > 0.0
+    ).map(|(choice, _score)|
+        // we have to clone here unless we want to pass 
+        // the matches around as references everywhere.
+        choice.clone()
+    ).collect()
 }
 
 fn get_test_config() -> Configuration {
