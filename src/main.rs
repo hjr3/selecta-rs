@@ -13,6 +13,8 @@ mod config;
 mod score;
 mod search;
 
+
+#[cfg(not(test))]
 fn main() {
 
     //let mut screen = screen::Screen::with_screen();
@@ -43,6 +45,7 @@ fn main() {
     //tty.puts();
 }
 
+#[cfg(not(test))]
 fn stdin_readlines() -> Vec<String> {
     let mut choices: Vec<String> = Vec::new();
 
