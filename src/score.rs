@@ -29,7 +29,7 @@ pub fn score(choice: &str, query: &str) -> f64 {
 /// Find the length of the shortest substring matching the given characters.
 fn compute_match_length(haystack: &str, needles: Vec<char>) -> Option<usize> {
     let first_char = needles[0];
-    let rest = needles.slice_from(1);
+    let rest = &needles[1..];
 
     let first_indexes = find_char_in_string(haystack, first_char);
 
@@ -80,7 +80,7 @@ fn find_end_of_match(haystack: &str, needles: &[char], first_index: usize) -> Op
 
 /// Implements Ruby's `#index` method
 fn find_from_offset(haystack: &str, needle: char, offset: usize) -> Option<usize> {
-    let h = haystack.slice_from(offset);
+    let h = &haystack[offset..];
 
     let index = h.find(needle);
 
