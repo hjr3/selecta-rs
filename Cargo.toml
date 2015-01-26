@@ -9,3 +9,7 @@ authors = [ "herman@hermanradtke.com" ]
 [[bin]]
 
 name = "selecta"
+
+[dependencies]
+regex = "*"
+regex_macros = "*"

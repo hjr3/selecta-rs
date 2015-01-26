@@ -19,7 +19,6 @@ impl Search {
            done: bool,
            matches: Option<Vec<String>>) -> Search {
 
-        // TODO wire this up
         let m = match matches {
             Some(m) => m,
             _ => compute_matches(&choices, query.as_slice())
@@ -45,31 +44,46 @@ impl Search {
                     None)
     }
 
-    pub fn down(&mut self) -> &mut Search {
+    pub fn down(self) -> Search {
         let max_visible_choices = self.max_visible_choices();
 
         if max_visible_choices > 0 {
-            self.index = (self.index + 1) % max_visible_choices;
+            Search::new(self.config,
+                        self.choices,
+                        (self.index + 1) % max_visible_choices,
+                        self.query,
+                        self.done,
+                        None)
+        } else {
+            self
         }
-        self
     }
 
-    pub fn up(&mut self) -> &mut Search {
+    pub fn up(self) -> Search {
         let max_visible_choices = self.max_visible_choices();
 
         if max_visible_choices > 0 {
+            let mut index;
 
             // Rust handles negative modulo differently than ruby
             if self.index == 0 {
-                self.index = max_visible_choices - 1;
+                index = max_visible_choices - 1;
             } else {
-                self.index = self.index - 1;
+                index = self.index - 1;
             }
+
+            Search::new(self.config,
+                        self.choices,
+                        index,
+                        self.query,
+                        self.done,
+                        None)
+        } else {
+            self
         }
-        self
     }
 
-    pub fn max_visible_choices(&self) -> u64 {
+    fn max_visible_choices(&self) -> u64 {
         min(self.config.get_visible_choices() as usize, self.matches.len()) as u64
     }
 
@@ -79,7 +93,7 @@ impl Search {
                     self.choices,
                     0,
                     self.query + string,
-                    false,
+                    self.done,
                     None);
 
         search
@@ -95,8 +109,14 @@ impl Search {
         self
     }
 
+    pub fn delete_word(&mut self) -> &Search {
+        let re = regex!(r"[^ ]* *$");
+        self.query = re.replace(self.query.as_slice(), "");
+        self
+    }
+
     pub fn selection(&self) -> Option<&String> {
-        self.choices.get(self.index as usize)
+        self.matches.get(self.index as usize)
     }
 
     pub fn get_query(&self) -> &String {
@@ -122,11 +142,11 @@ fn compute_matches(choices: &Vec<String>, query: &str) -> Vec<String> {
         (choice, score(choice.as_slice(), query))
     ).filter(|&(_choice, score)|
         score > 0.0
-    ).map(|(choice, _score)|
+    ).map(|(choice, _score)| {
         // we have to clone here unless we want to pass 
         // the matches around as references everywhere.
         choice.clone()
-    ).collect()
+    }).collect()
 }
 
 #[cfg(test)]
@@ -161,25 +181,25 @@ mod tests {
 
     #[test]
     fn test_moves_down_list() {
-        let mut search = get_blank_search();
+        let search = get_blank_search();
         assert!(search.down().selection().unwrap().as_slice() == "two");
     }
 
     #[test]
     fn test_moves_up() {
-        let mut search = get_blank_search();
+        let search = get_blank_search();
         assert!(search.down().up().selection().unwrap().as_slice() == "one");
     }
 
     #[test]
     fn test_loops_around_when_reaching_end_of_the_list() {
-        let mut search = get_blank_search();
+        let search = get_blank_search();
         assert!(search.down().down().down().down().selection().unwrap().as_slice() == "two");
     }
 
     #[test]
     fn test_loops_around_when_reaching_top_of_the_list() {
-        let mut search = get_blank_search();
+        let search = get_blank_search();
         assert!(search.up().up().selection().unwrap().as_slice() == "two");
     }
 
@@ -190,29 +210,41 @@ mod tests {
         String::from_str("three"));
 
         let config = Configuration::new(2, "".to_string(), choices);
-        let mut search = Search::blank(config);
+        let search = Search::blank(config);
         assert!(search.down().down().down().selection().unwrap().as_slice() == "two");
     }
 
     #[test]
     fn test_filtered_search_results_moves_up_down_list() {
-        let search = get_blank_search();
-        let mut new_search = search.append_search_string("t");
+        let search = get_blank_search().append_search_string("t");
+        assert!(search.down().selection().unwrap().as_slice() == "three");
 
-        // TODO fix after score is complete
-        //assert!(new_search.down().selection().unwrap().as_slice() == "three");
+        let search = get_blank_search().append_search_string("t");
+        assert!(search.up().selection().unwrap().as_slice() == "three");
     }
 
     #[test]
     fn test_filtered_search_results_loops_around_when_reaching_the_end() {
+        let search = get_blank_search().append_search_string("t");
+        assert!(search.down().down().selection().unwrap().as_slice() == "two");
+
+        let search = get_blank_search().append_search_string("t");
+        assert!(search.up().selection().unwrap().as_slice() == "three");
     }
 
     #[test]
     fn test_everything_filtered_out_cannot_move_up_or_down() {
+        let search = get_blank_search().append_search_string("zzz");
+        assert!(search.down().selection().is_none());
+
+        let search = get_blank_search().append_search_string("zzz");
+        assert!(search.up().selection().is_none());
     }
 
     #[test]
     fn test_nothing_matches() {
+        let search = get_blank_search().append_search_string("doesnt-mtch");
+        assert!(search.selection().is_none());
     }
 
     #[test]
@@ -228,11 +260,17 @@ mod tests {
 
     #[test]
     fn test_deletes_words() {
+        assert!(get_blank_search().append_search_string("").delete_word().get_query().as_slice() == "");
+        assert!(get_blank_search().append_search_string("a").delete_word().get_query().as_slice() == "");
+        assert!(get_blank_search().append_search_string("a ").delete_word().get_query().as_slice() == "");
+        assert!(get_blank_search().append_search_string("a b").delete_word().get_query().as_slice() == "a ");
+        assert!(get_blank_search().append_search_string("a b ").delete_word().get_query().as_slice() == "a ");
+        assert!(get_blank_search().append_search_string(" a b").delete_word().get_query().as_slice() == " a ");
     }
 
     #[test]
     fn test_clears_query() {
-        let given_queries: Vec<&str> = vec!("", "a", "a ", "a b", "a b ", " a b");
+        let given_queries = ["", "a", "a ", "a b", "a b ", " a b"];
 
         for query in given_queries.iter() {
             let search = get_blank_search();

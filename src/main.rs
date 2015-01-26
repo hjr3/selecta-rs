@@ -1,5 +1,9 @@
 #![allow(unstable)]
 
+#![feature(plugin)]
+#[plugin] #[no_link] extern crate regex_macros;
+extern crate regex;
+
 extern crate libc;
 extern crate test;
 
